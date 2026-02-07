@@ -1,50 +1,32 @@
-import { Sequelize } from "sequelize";
 import * as dotenv from "dotenv";
+import { Sequelize } from "sequelize";
 
 dotenv.config();
 
 const config = {
   development: {
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-    host: process.env.DB_HOST,
+    username: process.env.DB_USERNAME || "",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_DATABASE || "",
+    host: process.env.DB_HOST || "localhost",
     port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
-    dialect:
-      (process.env.DB_DIALECT as
-        | "postgres"
-        | "mysql"
-        | "sqlite"
-        | "mariadb"
-        | "mssql") || "postgres",
+    dialect: "postgres",
   },
   production: {
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-    host: process.env.DB_HOST,
+    username: process.env.DB_USERNAME || "",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_DATABASE || "",
+    host: process.env.DB_HOST || "localhost",
     port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
-    dialect:
-      (process.env.DB_DIALECT as
-        | "postgres"
-        | "mysql"
-        | "sqlite"
-        | "mariadb"
-        | "mssql") || "postgres",
+    dialect: "postgres",
   },
   test: {
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-    host: process.env.DB_HOST,
+    username: process.env.DB_USERNAME || "",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_DATABASE || "",
+    host: process.env.DB_HOST || "localhost",
     port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
-    dialect:
-      (process.env.DB_DIALECT as
-        | "postgres"
-        | "mysql"
-        | "sqlite"
-        | "mariadb"
-        | "mssql") || "postgres",
+    dialect: "postgres",
   },
 };
 
@@ -59,7 +41,7 @@ const sequelize = new Sequelize(
   dbConfig.password || "",
   {
     host: dbConfig.host,
-    dialect: dbConfig.dialect,
+    dialect: "postgres",
     port: dbConfig.port,
     logging: false,
     pool: {
@@ -73,6 +55,9 @@ const sequelize = new Sequelize(
       underscored: false,
       freezeTableName: true,
     },
+    dialectOptions: {
+      connectTimeout: 10000,
+    },
   },
 );
 
@@ -80,7 +65,9 @@ export const initializeDatabase = async (): Promise<void> => {
   try {
     await sequelize.authenticate();
   } catch (error) {
-    throw new Error("Unable to connect to the database");
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Unable to connect to the database: ${errorMessage}`);
   }
 };
 

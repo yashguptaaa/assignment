@@ -1,11 +1,12 @@
 import express from "express";
-import * as dotenv from "dotenv";
+import dotenv from "dotenv";
 import { initializeDatabase } from "./config/database.config";
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+export const app = express();
+
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -15,8 +16,17 @@ app.get("/health", (_req, res) => {
 });
 
 const startServer = async (): Promise<void> => {
-  await initializeDatabase();
-  app.listen(PORT);
+  try {
+    await initializeDatabase();
+    console.log("✅ Database connected successfully");
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
+  }
 };
 
 startServer();
