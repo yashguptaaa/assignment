@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-import "./config/database";
+import "./config/database.config";
 import "./models";
 import webhookRoutes from "./api/webhook.route";
 import emailsRoutes from "./api/email.route";
