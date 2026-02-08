@@ -216,13 +216,17 @@ export const sendToDbWriteQueue = async (
   await sqsClient.send(new SendMessageCommand(params));
 };
 
-export const receiveMessagesFromDbWriteQueue = async (maxMessages: number = 10): Promise<Array<{
+export const receiveMessagesFromDbWriteQueue = async (
+  maxMessages: number = 10,
+): Promise<Array<{
   receiptHandle: string;
   body: DbWriteQueueMessage;
 }> | null> => {
   const queueUrl = process.env.SQS_DB_WRITE_QUEUE_URL;
-  if (!queueUrl || queueUrl.trim() === '') {
-    throw new Error('SQS_DB_WRITE_QUEUE_URL environment variable is not set or is empty');
+  if (!queueUrl || queueUrl.trim() === "") {
+    throw new Error(
+      "SQS_DB_WRITE_QUEUE_URL environment variable is not set or is empty",
+    );
   }
 
   const sqsClient = getSQSClient();
@@ -231,7 +235,7 @@ export const receiveMessagesFromDbWriteQueue = async (maxMessages: number = 10):
     QueueUrl: queueUrl.trim(),
     MaxNumberOfMessages: Math.min(maxMessages, 10),
     WaitTimeSeconds: 20,
-    MessageAttributeNames: ['All'],
+    MessageAttributeNames: ["All"],
   };
 
   const response = await sqsClient.send(new ReceiveMessageCommand(params));
@@ -242,7 +246,7 @@ export const receiveMessagesFromDbWriteQueue = async (maxMessages: number = 10):
 
   return response.Messages.map((msg) => {
     if (!msg.Body || !msg.ReceiptHandle) {
-      throw new Error('Invalid message format from SQS');
+      throw new Error("Invalid message format from SQS");
     }
     return {
       receiptHandle: msg.ReceiptHandle,
@@ -251,10 +255,14 @@ export const receiveMessagesFromDbWriteQueue = async (maxMessages: number = 10):
   });
 };
 
-export const deleteMessageFromDbWriteQueue = async (receiptHandle: string): Promise<void> => {
+export const deleteMessageFromDbWriteQueue = async (
+  receiptHandle: string,
+): Promise<void> => {
   const queueUrl = process.env.SQS_DB_WRITE_QUEUE_URL;
-  if (!queueUrl || queueUrl.trim() === '') {
-    throw new Error('SQS_DB_WRITE_QUEUE_URL environment variable is not set or is empty');
+  if (!queueUrl || queueUrl.trim() === "") {
+    throw new Error(
+      "SQS_DB_WRITE_QUEUE_URL environment variable is not set or is empty",
+    );
   }
 
   const sqsClient = getSQSClient();
@@ -263,7 +271,63 @@ export const deleteMessageFromDbWriteQueue = async (receiptHandle: string): Prom
     new DeleteMessageCommand({
       QueueUrl: queueUrl.trim(),
       ReceiptHandle: receiptHandle,
-    })
+    }),
   );
 };
 
+export const receiveMessagesFromDLQ = async (
+  maxMessages: number = 10,
+): Promise<Array<{
+  receiptHandle: string;
+  body: unknown;
+  attributes?: Record<string, string>;
+}> | null> => {
+  const queueUrl = process.env.SQS_DLQ_URL;
+  if (!queueUrl || queueUrl.trim() === "") {
+    throw new Error("SQS_DLQ_URL environment variable is not set or is empty");
+  }
+
+  const sqsClient = getSQSClient();
+
+  const params: ReceiveMessageCommandInput = {
+    QueueUrl: queueUrl.trim(),
+    MaxNumberOfMessages: Math.min(maxMessages, 10),
+    WaitTimeSeconds: 20,
+    MessageAttributeNames: ["All"],
+  };
+
+  const response = await sqsClient.send(new ReceiveMessageCommand(params));
+
+  if (!response.Messages || response.Messages.length === 0) {
+    return null;
+  }
+
+  return response.Messages.map((msg) => {
+    if (!msg.Body || !msg.ReceiptHandle) {
+      throw new Error("Invalid message format from SQS");
+    }
+    return {
+      receiptHandle: msg.ReceiptHandle,
+      body: JSON.parse(msg.Body),
+      attributes: msg.Attributes || {},
+    };
+  });
+};
+
+export const deleteMessageFromDLQ = async (
+  receiptHandle: string,
+): Promise<void> => {
+  const queueUrl = process.env.SQS_DLQ_URL;
+  if (!queueUrl || queueUrl.trim() === "") {
+    throw new Error("SQS_DLQ_URL environment variable is not set or is empty");
+  }
+
+  const sqsClient = getSQSClient();
+
+  await sqsClient.send(
+    new DeleteMessageCommand({
+      QueueUrl: queueUrl.trim(),
+      ReceiptHandle: receiptHandle,
+    }),
+  );
+};

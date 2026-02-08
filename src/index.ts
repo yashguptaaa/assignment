@@ -3,9 +3,10 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-import "./config/database.config";
+import "./config/database";
 import "./models";
 import webhookRoutes from "./api/webhook.route";
+import emailsRoutes from "./api/email.route";
 import { initializeDatabase } from "./config/database.config";
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use("/webhook", webhookRoutes);
+app.use("/emails", emailsRoutes);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
