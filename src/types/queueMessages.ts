@@ -19,6 +19,12 @@ export interface ProcessingQueueMessage {
     threadId?: string;
     receivedAt: string;
   };
+  attachmentIds?: Array<{
+    attachmentId: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+  }>;
   webhookNotificationId: number;
 }
 

@@ -2,8 +2,14 @@ import {
   SQSClient,
   SendMessageCommand,
   SendMessageCommandInput,
+  ReceiveMessageCommand,
+  DeleteMessageCommand,
+  ReceiveMessageCommandInput,
 } from "@aws-sdk/client-sqs";
-import { IngestionQueueMessage } from "../types/queueMessages";
+import {
+  IngestionQueueMessage,
+  ProcessingQueueMessage,
+} from "../types/queueMessages";
 
 const getSQSClient = (): SQSClient => {
   const region = process.env.AWS_REGION;
@@ -45,4 +51,85 @@ export const sendToIngestionQueue = async (
   };
 
   await sqsClient.send(new SendMessageCommand(params));
+};
+
+export const sendToProcessingQueue = async (
+  message: ProcessingQueueMessage,
+): Promise<void> => {
+  const queueUrl = process.env.SQS_PROCESSING_QUEUE_URL;
+  if (!queueUrl || queueUrl.trim() === "") {
+    throw new Error(
+      "SQS_PROCESSING_QUEUE_URL environment variable is not set or is empty",
+    );
+  }
+
+  const sqsClient = getSQSClient();
+
+  const params: SendMessageCommandInput = {
+    QueueUrl: queueUrl.trim(),
+    MessageBody: JSON.stringify(message),
+    MessageGroupId: message.mailboxId,
+    MessageDeduplicationId: `${message.mailboxId}-${message.gmailMessageId}-${message.historyId}`,
+  };
+
+  await sqsClient.send(new SendMessageCommand(params));
+};
+
+export const receiveMessagesFromIngestionQueue = async (
+  maxMessages: number = 10,
+): Promise<Array<{
+  receiptHandle: string;
+  body: IngestionQueueMessage;
+}> | null> => {
+  const queueUrl = process.env.SQS_INGESTION_QUEUE_URL;
+  if (!queueUrl || queueUrl.trim() === "") {
+    throw new Error(
+      "SQS_INGESTION_QUEUE_URL environment variable is not set or is empty",
+    );
+  }
+
+  const sqsClient = getSQSClient();
+
+  const params: ReceiveMessageCommandInput = {
+    QueueUrl: queueUrl.trim(),
+    MaxNumberOfMessages: Math.min(maxMessages, 10),
+    WaitTimeSeconds: 20,
+    MessageAttributeNames: ["All"],
+  };
+
+  const response = await sqsClient.send(new ReceiveMessageCommand(params));
+
+  if (!response.Messages || response.Messages.length === 0) {
+    return null;
+  }
+
+  return response.Messages.map((msg) => {
+    if (!msg.Body || !msg.ReceiptHandle) {
+      throw new Error("Invalid message format from SQS");
+    }
+    return {
+      receiptHandle: msg.ReceiptHandle,
+      body: JSON.parse(msg.Body) as IngestionQueueMessage,
+    };
+  });
+};
+
+export const deleteMessageFromIngestionQueue = async (
+  receiptHandle: string,
+): Promise<void> => {
+  const queueUrl = process.env.SQS_INGESTION_QUEUE_URL;
+  if (!queueUrl || queueUrl.trim() === "") {
+    throw new Error(
+      "SQS_INGESTION_QUEUE_URL environment variable is not set or is empty",
+    );
+  }
+
+  const sqsClient = getSQSClient();
+
+  await sqsClient.send(
+    new DeleteMessageCommand({
+      QueueUrl: queueUrl.trim(),
+      ReceiptHandle: receiptHandle,
+    }),
+  );
 };
