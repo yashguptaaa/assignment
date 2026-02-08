@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
+    "load-test": "node load-test.js",
     "worker:email-fetcher": "ts-node src/worker/emailFetcher.worker.ts",
     "worker:attachment-processor": "ts-node src/worker/attatchmentProcessor.worker.ts",
     "worker:db-writer": "ts-node src/worker/dbWriter.worker.ts",
