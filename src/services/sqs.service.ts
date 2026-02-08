@@ -9,6 +9,7 @@ import {
 import {
   IngestionQueueMessage,
   ProcessingQueueMessage,
+  DbWriteQueueMessage,
 } from "../types/queueMessages";
 
 const getSQSClient = (): SQSClient => {
@@ -132,4 +133,85 @@ export const deleteMessageFromIngestionQueue = async (
       ReceiptHandle: receiptHandle,
     }),
   );
+};
+
+export const receiveMessagesFromProcessingQueue = async (
+  maxMessages: number = 10,
+): Promise<Array<{
+  receiptHandle: string;
+  body: ProcessingQueueMessage;
+}> | null> => {
+  const queueUrl = process.env.SQS_PROCESSING_QUEUE_URL;
+  if (!queueUrl || queueUrl.trim() === "") {
+    throw new Error(
+      "SQS_PROCESSING_QUEUE_URL environment variable is not set or is empty",
+    );
+  }
+
+  const sqsClient = getSQSClient();
+
+  const params: ReceiveMessageCommandInput = {
+    QueueUrl: queueUrl.trim(),
+    MaxNumberOfMessages: Math.min(maxMessages, 10),
+    WaitTimeSeconds: 20,
+    MessageAttributeNames: ["All"],
+  };
+
+  const response = await sqsClient.send(new ReceiveMessageCommand(params));
+
+  if (!response.Messages || response.Messages.length === 0) {
+    return null;
+  }
+
+  return response.Messages.map((msg) => {
+    if (!msg.Body || !msg.ReceiptHandle) {
+      throw new Error("Invalid message format from SQS");
+    }
+    return {
+      receiptHandle: msg.ReceiptHandle,
+      body: JSON.parse(msg.Body) as ProcessingQueueMessage,
+    };
+  });
+};
+
+export const deleteMessageFromProcessingQueue = async (
+  receiptHandle: string,
+): Promise<void> => {
+  const queueUrl = process.env.SQS_PROCESSING_QUEUE_URL;
+  if (!queueUrl || queueUrl.trim() === "") {
+    throw new Error(
+      "SQS_PROCESSING_QUEUE_URL environment variable is not set or is empty",
+    );
+  }
+
+  const sqsClient = getSQSClient();
+
+  await sqsClient.send(
+    new DeleteMessageCommand({
+      QueueUrl: queueUrl.trim(),
+      ReceiptHandle: receiptHandle,
+    }),
+  );
+};
+
+export const sendToDbWriteQueue = async (
+  message: DbWriteQueueMessage,
+): Promise<void> => {
+  const queueUrl = process.env.SQS_DB_WRITE_QUEUE_URL;
+  if (!queueUrl || queueUrl.trim() === "") {
+    throw new Error(
+      "SQS_DB_WRITE_QUEUE_URL environment variable is not set or is empty",
+    );
+  }
+
+  const sqsClient = getSQSClient();
+
+  const params: SendMessageCommandInput = {
+    QueueUrl: queueUrl.trim(),
+    MessageBody: JSON.stringify(message),
+    MessageGroupId: message.mailboxId,
+    MessageDeduplicationId: `${message.mailboxId}-${message.gmailMessageId}-${message.historyId}`,
+  };
+
+  await sqsClient.send(new SendMessageCommand(params));
 };

@@ -307,3 +307,69 @@ export const getMessageIdFromHistoryId = async (
     throw error;
   }
 };
+
+export const downloadAttachment = async (
+  clientId: string,
+  accessToken: string,
+  refreshToken: string,
+  messageId: string,
+  attachmentId: string,
+): Promise<{ data: Buffer; size: number; mimeType: string }> => {
+  const oauth2Client = getOAuth2Client(clientId, accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+  try {
+    const response = await gmail.users.messages.attachments.get({
+      userId: "me",
+      messageId: messageId,
+      id: attachmentId,
+    });
+
+    if (!response.data.data || !response.data.size) {
+      throw new Error("Invalid attachment response");
+    }
+
+    return {
+      data: Buffer.from(response.data.data, "base64"),
+      size:
+        typeof response.data.size === "string"
+          ? parseInt(response.data.size, 10)
+          : response.data.size,
+      mimeType: "application/octet-stream",
+    };
+  } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === 401
+    ) {
+      const newAccessToken = await refreshAccessToken(
+        oauth2Client,
+        refreshToken,
+      );
+      oauth2Client.setCredentials({ access_token: newAccessToken });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+      const response = await gmail.users.messages.attachments.get({
+        userId: "me",
+        messageId: messageId,
+        id: attachmentId,
+      });
+
+      if (!response.data.data || !response.data.size) {
+        throw new Error("Invalid attachment response");
+      }
+
+      return {
+        data: Buffer.from(response.data.data, "base64"),
+        size:
+          typeof response.data.size === "string"
+            ? parseInt(response.data.size, 10)
+            : response.data.size,
+        mimeType: "application/octet-stream",
+      };
+    }
+    throw error;
+  }
+};

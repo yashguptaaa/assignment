@@ -8,6 +8,7 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "worker:email-fetcher": "ts-node src/workers/emailFetcher.worker.ts",
+    "worker:attachment-processor": "ts-node src/workers/attachmentProcessor.worker.ts",
     "migrate": "npm run build && NODE_ENV=development npx sequelize-cli db:migrate",
     "migrate:undo": "npm run build && NODE_ENV=development npx sequelize-cli db:migrate:undo"
   },
@@ -17,6 +18,7 @@
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.1",
     "@aws-sdk/client-sqs": "^3.490.0",
+    "@aws-sdk/client-s3": "^3.490.0",
     "googleapis": "^128.0.0",
     "crypto": "^1.0.1",
     "dotenv": "^16.3.1"
