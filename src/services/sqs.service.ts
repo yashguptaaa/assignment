@@ -51,7 +51,42 @@ export const sendToIngestionQueue = async (
     MessageDeduplicationId: `${message.mailboxId}-${message.gmailMessageId}-${message.historyId}`,
   };
 
-  await sqsClient.send(new SendMessageCommand(params));
+  try {
+    const response = await sqsClient.send(new SendMessageCommand(params));
+    if (!response.MessageId) {
+      throw new Error(
+        "SQS did not return a MessageId - message may not have been sent",
+      );
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("credentials")) {
+        throw new Error(
+          `AWS credentials error: ${error.message}. Check AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY`,
+        );
+      }
+      if (error.message.includes("region")) {
+        throw new Error(
+          `AWS region error: ${error.message}. Check AWS_REGION environment variable`,
+        );
+      }
+      if (
+        error.message.includes("permission") ||
+        error.message.includes("AccessDenied")
+      ) {
+        throw new Error(
+          `SQS permission error: ${error.message}. Check IAM permissions for sqs:SendMessage`,
+        );
+      }
+      if (error.message.includes("Queue") || error.message.includes("queue")) {
+        throw new Error(
+          `SQS queue error: ${error.message}. Check queue URL: ${queueUrl}`,
+        );
+      }
+      throw new Error(`SQS send error: ${error.message}`);
+    }
+    throw error;
+  }
 };
 
 export const sendToProcessingQueue = async (
