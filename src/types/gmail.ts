@@ -14,9 +14,9 @@ export interface PubSubNotification {
     messageId: string;
     publishTime: string;
     attributes?: {
-      'googclient_channelid'?: string;
-      'googclient_channelexpiration'?: string;
-      'googclient_channeltoken'?: string;
+      googclient_channelid?: string;
+      googclient_channelexpiration?: string;
+      googclient_channeltoken?: string;
     };
   };
   subscription: string;
@@ -26,4 +26,3 @@ export interface GmailPushNotification {
   emailAddress: string;
   historyId: string;
 }
-

@@ -50,7 +50,6 @@ export const handleGmailWebhook = async (
       return;
     }
 
-    // Extract mailboxId - use get() method for Sequelize model instances
     const mailboxId = mailbox.get
       ? (mailbox.get("mailboxId") as string)
       : mailbox.mailboxId;
@@ -87,28 +86,65 @@ export const handleGmailWebhook = async (
       return;
     }
 
-    const webhookNotificationId = await insertWebhookNotification(
-      mailboxId,
-      gmailMessageId,
-      historyId,
-      {
-        ...decodedData,
-        pubsubMessageId: notification.message.messageId,
-        publishTime: notification.message.publishTime,
-      },
-    );
+    let webhookNotificationId: number;
+    try {
+      webhookNotificationId = await insertWebhookNotification(
+        mailboxId,
+        gmailMessageId,
+        historyId,
+        {
+          ...decodedData,
+          pubsubMessageId: notification.message.messageId,
+          publishTime: notification.message.publishTime,
+        },
+      );
+    } catch (insertError) {
+      const errorMessage =
+        insertError instanceof Error ? insertError.message : "Unknown error";
+      res.status(500).json({
+        error: "Failed to create webhook notification",
+        details: errorMessage,
+      });
+      return;
+    }
 
-    await sendToIngestionQueue({
-      mailboxId: mailboxId,
-      gmailMessageId,
-      historyId,
-      webhookNotificationId,
-    });
+    if (!webhookNotificationId || typeof webhookNotificationId !== "number") {
+      res.status(500).json({
+        error: "Failed to create webhook notification",
+        details: `Invalid notification ID: ${webhookNotificationId}`,
+      });
+      return;
+    }
 
-    res.status(200).json({
+    let sqsError = null;
+    try {
+      await sendToIngestionQueue({
+        mailboxId: mailboxId,
+        gmailMessageId,
+        historyId,
+        webhookNotificationId,
+      });
+    } catch (sqsErr) {
+      sqsError = sqsErr instanceof Error ? sqsErr.message : "Unknown error";
+      console.error("Failed to send to ingestion queue:", sqsError);
+    }
+
+    const responsePayload: {
+      message: string;
+      webhookNotificationId: number;
+      warning?: string;
+      sqsError?: string;
+    } = {
       message: "Webhook processed successfully",
-      webhookNotificationId,
-    });
+      webhookNotificationId: webhookNotificationId,
+    };
+
+    if (sqsError) {
+      responsePayload.warning = `Failed to send to ingestion queue`;
+      responsePayload.sqsError = sqsError;
+    }
+
+    res.status(200).json(responsePayload);
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";

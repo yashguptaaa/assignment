@@ -37,6 +37,7 @@ export const getMailboxWithCredentials = async (
 ): Promise<{
   mailboxId: string;
   clientId: string;
+  userEmail: string;
   accessToken: string;
   refreshToken: string;
 } | null> => {
@@ -45,7 +46,13 @@ export const getMailboxWithCredentials = async (
       mailboxId,
       isMailboxEnabled: true,
     },
-    attributes: ["mailboxId", "clientId", "accessToken", "refreshToken"],
+    attributes: [
+      "mailboxId",
+      "clientId",
+      "userEmail",
+      "accessToken",
+      "refreshToken",
+    ],
   });
 
   if (!mailbox) {
@@ -58,6 +65,9 @@ export const getMailboxWithCredentials = async (
   const clientId = mailbox.get
     ? (mailbox.get("clientId") as string)
     : mailbox.clientId;
+  const userEmail = mailbox.get
+    ? (mailbox.get("userEmail") as string)
+    : mailbox.userEmail;
   const accessToken = mailbox.get
     ? (mailbox.get("accessToken") as string)
     : mailbox.accessToken;
@@ -68,6 +78,7 @@ export const getMailboxWithCredentials = async (
   return {
     mailboxId: mailboxIdValue,
     clientId,
+    userEmail,
     accessToken,
     refreshToken,
   };

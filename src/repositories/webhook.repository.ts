@@ -36,7 +36,15 @@ export const insertWebhookNotification = async (
     });
   }
 
-  return notification.id;
+  const notificationId = notification.get
+    ? (notification.get("id") as number)
+    : notification.id;
+
+  if (!notificationId || typeof notificationId !== "number") {
+    throw new Error("Failed to retrieve webhook notification ID from database");
+  }
+
+  return notificationId;
 };
 
 export const checkDuplicate = async (

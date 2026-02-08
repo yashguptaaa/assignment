@@ -8,9 +8,12 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "worker:email-fetcher": "ts-node src/workers/emailFetcher.worker.ts",
+    "worker:attachment-processor": "ts-node src/workers/attachmentProcessor.worker.ts",
     "worker:db-writer": "ts-node src/workers/dbWriter.worker.ts",
     "worker:dlq-processor": "ts-node src/workers/dlqProcessor.worker.ts",
-    "worker:attachment-processor": "ts-node src/workers/attachmentProcessor.worker.ts",
+    "test:e2e": "node test-e2e.js",
+    "test:layer": "node test-layer-by-layer.js",
+    "queue:clear": "node delete-inflight-messages.js",
     "migrate": "npm run build && NODE_ENV=development npx sequelize-cli db:migrate",
     "migrate:undo": "npm run build && NODE_ENV=development npx sequelize-cli db:migrate:undo"
   },
