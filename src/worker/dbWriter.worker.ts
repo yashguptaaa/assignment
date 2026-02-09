@@ -6,10 +6,10 @@ import { batchInsertProcessedEmails } from "../repositories/processedEmail.repos
 import { updateWebhookStatus } from "../repositories/webhook.repository";
 import { DbWriteQueueMessage } from "../types/queueMessages";
 
-const CONCURRENCY = parseInt(process.env.DB_WRITER_CONCURRENCY || "3", 10);
-const BATCH_SIZE = parseInt(process.env.DB_WRITER_BATCH_SIZE || "25", 10);
+const CONCURRENCY = parseInt(process.env.DB_WRITER_CONCURRENCY || "10", 10);
+const BATCH_SIZE = parseInt(process.env.DB_WRITER_BATCH_SIZE || "75", 10);
 const DB_WRITE_BATCH_SIZE = parseInt(
-  process.env.DB_WRITE_BATCH_SIZE || "10",
+  process.env.DB_WRITE_BATCH_SIZE || "50",
   10,
 );
 

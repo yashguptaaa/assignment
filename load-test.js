@@ -335,7 +335,7 @@ function printProgress() {
 
   process.stdout.write(
     `\r📊 Progress: ${formatNumber(stats.sent)}/${formatNumber(stats.total)} | ` +
-      `✅ ${formatNumber(stats.succeeded)} | ❌ ${formatNumber(stats.failed)} | ` +
+      `✅ ${formatNumber(stats.succeeded)} ` +
       `Rate: ${rate.toFixed(1)}/sec | ETA: ${formatDuration(eta * 1000)}`,
   );
 }
